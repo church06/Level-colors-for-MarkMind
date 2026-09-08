@@ -1,0 +1,9 @@
+{
+  "id": "level-colors-for-markmind",
+  "name": "Level Colors for MarkMind",
+  "version": "1.0.0",
+  "minAppVersion": "1.5.0",
+  "description": "Automatically colours MarkMind Basic nodes and branches by hierarchy level.",
+  "author": "SDesolator",
+  "isDesktopOnly": false
+}

@@ -1,0 +1,7 @@
+/*
+Level Colors for MarkMind
+
+Colours are applied at runtime by main.js because MarkMind Basic
+uses dynamic SVG and inline styles for its rendered mind map.
+This file is intentionally minimal.
+*/
