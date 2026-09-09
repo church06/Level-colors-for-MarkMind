@@ -5,16 +5,21 @@ export default defineConfig([
 	...obsidianmd.configs.recommended,
 	{
 		ignores: ['main.js'],
+	},
+	{
+		files: ['src/**/*.ts'],
 		languageOptions: {
 			parserOptions: {
-				projectService: {
-					allowDefaultProject: [
-						'eslint.config.mjs',
-						'esbuild.config.mjs',
-						'version-bump.mjs',
-					],
-				},
+				projectService: true,
+				tsconfigRootDir: import.meta.dirname,
 			},
+		},
+	},
+	{
+		files: ['esbuild.config.mjs', 'version-bump.mjs'],
+		rules: {
+			'obsidianmd/no-nodejs-modules': 'off',
+			'no-undef': 'off',
 		},
 	},
 ]);

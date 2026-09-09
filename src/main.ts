@@ -66,21 +66,20 @@ export default class LevelColorsForMarkMind extends Plugin {
 
 		this.addCommand({
 			id: 'reapply-level-colors',
-			name: 'Re-apply MarkMind level colours',
+			name: 'Re-apply markmind level colours',
 			callback: () => this.apply(true),
 		});
 
 		this.addCommand({
 			id: 'copy-level-color-diagnostics',
-			name: 'Copy Level Colors diagnostics',
+			name: 'Copy level colors diagnostics',
 			callback: async () => {
 				const report = this.makeDiagnostics();
 				try {
 					await navigator.clipboard.writeText(JSON.stringify(report, null, 2));
-					new Notice('Level Colors diagnostics copied');
+					new Notice('Level colors diagnostics copied');
 				} catch {
-					console.log('Level Colors diagnostics', report);
-					new Notice('Diagnostics written to console');
+					new Notice('Could not copy diagnostics to clipboard');
 				}
 			},
 		});
@@ -109,8 +108,7 @@ export default class LevelColorsForMarkMind extends Plugin {
 	}
 
 	private apply(showNotice: boolean): void {
-		const activeLeaf = this.app.workspace.activeLeaf;
-		const host: ParentNode = activeLeaf?.view?.containerEl ?? document;
+		const host: ParentNode = document;
 
 		const totals: PaintStats = {
 			nodes: 0,
@@ -506,8 +504,7 @@ export default class LevelColorsForMarkMind extends Plugin {
 	}
 
 	private makeDiagnostics(): unknown[] {
-		const activeLeaf = this.app.workspace.activeLeaf;
-		const host: ParentNode = activeLeaf?.view?.containerEl ?? document;
+		const host: ParentNode = document;
 		const reports: unknown[] = [];
 
 		for (const content of this.queryAll<HTMLElement>(host, CONTENT_SELECTOR)) {

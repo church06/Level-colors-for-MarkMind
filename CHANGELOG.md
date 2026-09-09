@@ -2,6 +2,14 @@
 
 ## 1.0.2
 
+Lint/submission cleanup:
+
+- Removed console logging from diagnostics fallback.
+- Removed deprecated `workspace.activeLeaf` usage.
+- Marked Node.js build scripts separately in ESLint configuration.
+- Adjusted diagnostics UI text to sentence case.
+
+
 Small visual-mapping adjustment.
 
 - Nodes now use their current hierarchy-level colour instead of the next level's colour.
