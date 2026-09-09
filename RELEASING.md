@@ -1,30 +1,19 @@
 # Releasing
 
-## GitHub repository
-
-Upload the contents of this folder to a GitHub repository, for example:
-
-```text
-level-colors-for-markmind
-```
-
-## GitHub Release
-
-For version `1.0.0`:
-
-1. Commit and push the repository.
-2. Create a Git tag/release named `1.0.0`.
-3. Attach these three files from the repository root to the GitHub Release:
+1. Run:
+   ```bash
+   npm install
+   npm run lint
+   npm run build
+   ```
+2. Confirm `manifest.json` and `versions.json` contain the intended version.
+3. Commit the source repository. Do not commit generated `main.js`.
+4. Create a GitHub Release whose tag exactly matches `manifest.json`, for example:
+   `1.0.1`
+5. Attach:
    - `main.js`
    - `manifest.json`
    - `styles.css`
-4. Keep `versions.json` in the repository root.
 
-If you later submit the plugin to the Obsidian Community Plugin directory, keep
-the plugin ID stable:
-
-```text
-level-colors-for-markmind
-```
-
-Do not change the ID after users have installed the public plugin.
+Before an Obsidian Community submission, commit the generated `package-lock.json`
+created by `npm install` so builds are reproducible with `npm ci`.

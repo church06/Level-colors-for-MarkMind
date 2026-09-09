@@ -1,9 +1,20 @@
-# OS/editor noise
-.DS_Store
-Thumbs.db
+# Editors
 .vscode/
 .idea/
+*.iml
 
-# Temporary files
-*.tmp
-*.log
+# npm
+node_modules/
+
+# Compiled release artifact: keep source in the repo and upload main.js to Releases.
+main.js
+
+# Sourcemaps
+*.map
+
+# Obsidian local plugin data
+data.json
+
+# OS files
+.DS_Store
+Thumbs.db

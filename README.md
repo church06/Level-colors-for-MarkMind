@@ -12,106 +12,115 @@ It is intentionally narrow in scope: install it, enable it, and let it assign co
 ## What it does
 
 - Automatically colours MarkMind Basic nodes by hierarchy level.
-- Colours rendered branch curves to match the relevant level.
+- Colours branch curves to match the corresponding hierarchy level.
 - Colours MarkMind's underline segments using logical tree traversal.
-- Re-applies colours after layout changes and node edits.
-- Works without changing the Markdown content of the note.
-- Designed to work on both desktop and mobile Obsidian.
+- Re-applies colours after relevant layout or render changes.
+- Does not modify note contents.
+- Uses CSS for all visual styling; runtime code only assigns structural level markers.
+- Intended to support desktop and mobile Obsidian.
 
-The plugin does **not** try to be a full styling system or theme editor. It is just a lightweight automatic level-colouring helper.
+The plugin does **not** try to be a full styling system or theme editor. It is a small automatic level-colouring helper.
 
 ## How it works
 
-MarkMind Basic renders a tree as nodes plus SVG branch elements.
+MarkMind Basic renders a tree as node elements plus SVG branch elements.
 
 Level Colors for MarkMind:
 
-1. Identifies the rendered MarkMind Basic tree.
-2. Reconstructs the parent/child graph from the branch connections.
-3. Traverses the tree from the root.
-4. Assigns a hierarchy depth to each node.
-5. Applies a palette automatically by level.
-6. Uses logical traversal order to bind the rendered underline segments to their nodes.
+1. Finds the rendered MarkMind Basic tree.
+2. Reconstructs the parent/child graph from branch connections.
+3. Orients the graph from the root.
+4. Traverses the tree in branch-render order.
+5. Calculates hierarchy depth.
+6. Assigns a `data-lcfm-level` marker to each node, branch and underline.
+7. Lets `styles.css` handle all colours.
 
-Underline assignment does not rely on note text or screen-row matching.
+Underline assignment uses the logical traversal sequence rather than node text or screen-row matching.
 
-## Installation
+## Manual installation
 
-### Manual installation
-
-1. Install and enable **MarkMind** in Obsidian.
-2. Download the latest release of this plugin.
-3. Create this folder inside your vault:
-
-   ```text
-   .obsidian/plugins/level-colors-for-markmind/
-   ```
-
-4. Put these files inside it:
-
-   ```text
-   main.js
-   manifest.json
-   styles.css
-   ```
-
-5. Reload Obsidian.
-6. Open **Settings → Community plugins**.
-7. Enable **Level Colors for MarkMind**.
-
-### Android
-
-The plugin is not marked as desktop-only and uses browser/Obsidian DOM APIs.
-
-If your vault configuration is synced, sync:
+Copy these three release files into:
 
 ```text
 .obsidian/plugins/level-colors-for-markmind/
 ```
 
-to Android and enable the plugin there as well.
-
-## Usage
-
-Normally there is nothing to configure.
-
-Open a MarkMind Basic mind map and the colours should be applied automatically.
-
-A command is also available from the Command Palette:
+Files:
 
 ```text
-Re-apply MarkMind level colours
+main.js
+manifest.json
+styles.css
 ```
 
-## Palette
+Reload Obsidian and enable **Level Colors for MarkMind** under Community plugins.
 
-The current built-in palette is defined near the top of `main.js`.
+## Development
 
-The plugin provides distinct colours for deep trees as well as shallow ones. If a tree becomes deeper than the built-in palette, the last colour is reused.
+Requirements:
 
-There is currently no settings UI. This is deliberate: the plugin is intended to remain small and low-maintenance.
+- Node.js 18 or newer
+- npm
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Development build:
+
+```bash
+npm run dev
+```
+
+Production build:
+
+```bash
+npm run build
+```
+
+Lint:
+
+```bash
+npm run lint
+```
+
+The production build writes `main.js` in the repository root. `main.js` is ignored by Git and should be attached to the corresponding GitHub Release instead.
+
+## Release files
+
+Each GitHub Release should contain:
+
+```text
+main.js
+manifest.json
+styles.css
+```
+
+The release tag must match the version in `manifest.json`, without a `v` prefix.
 
 ## Compatibility
 
-- **Target:** MarkMind Basic mode
-- **Obsidian:** minimum version declared in `manifest.json`
-- **Desktop:** supported
-- **Mobile / Android:** intended to be supported
-- **MarkMind Rich mode:** not supported or tested
+- Target: MarkMind Basic mode
+- MarkMind Rich mode: not supported or tested
+- Desktop: supported
+- Mobile / Android: intended to be supported
+- Minimum Obsidian version: see `manifest.json`
 
 This plugin depends on MarkMind Basic's rendered DOM/SVG structure. A future MarkMind update may require compatibility changes.
 
-## Development
+## Privacy
+
+This plugin does not make network requests, collect analytics, or transmit note contents.
+
+It only inspects the currently rendered MarkMind view and assigns local DOM level markers used by the bundled stylesheet.
+
+## Development note
 
 This plugin was **vibe-coded with ChatGPT**, then refined through iterative manual testing and debugging against MarkMind Basic.
 
 Maintained by **SDesolator**.
-
-## Privacy
-
-This plugin does not make network requests, collect analytics, or transmit note content.
-
-It only inspects and styles the MarkMind view currently rendered inside Obsidian.
 
 ## License
 

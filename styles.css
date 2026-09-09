@@ -1,7 +1,50 @@
 /*
 Level Colors for MarkMind
 
-Colours are applied at runtime by main.js because MarkMind Basic
-uses dynamic SVG and inline styles for its rendered mind map.
-This file is intentionally minimal.
+Runtime code only assigns a structural data attribute:
+    data-lcfm-level="<n>"
+
+All visual styling lives in this stylesheet.
 */
+
+[data-lcfm-level="0"]  { --lcfm-color: #E65C87; }
+[data-lcfm-level="1"]  { --lcfm-color: #3D91D4; }
+[data-lcfm-level="2"]  { --lcfm-color: #42B883; }
+[data-lcfm-level="3"]  { --lcfm-color: #F29A2E; }
+[data-lcfm-level="4"]  { --lcfm-color: #9A72D8; }
+[data-lcfm-level="5"]  { --lcfm-color: #43A9A0; }
+[data-lcfm-level="6"]  { --lcfm-color: #D7A93B; }
+[data-lcfm-level="7"]  { --lcfm-color: #E06F5C; }
+[data-lcfm-level="8"]  { --lcfm-color: #6574C4; }
+[data-lcfm-level="9"]  { --lcfm-color: #78A83B; }
+[data-lcfm-level="10"] { --lcfm-color: #C060A1; }
+[data-lcfm-level="11"] { --lcfm-color: #4E9FB5; }
+[data-lcfm-level="12"] { --lcfm-color: #A46F4C; }
+[data-lcfm-level="13"] { --lcfm-color: #7A8A99; }
+
+.mm-node[data-lcfm-level] {
+	color: var(--lcfm-color) !important;
+}
+
+.mm-node[data-lcfm-level] .mm-node-content,
+.mm-node[data-lcfm-level] .mm-node-content span,
+.mm-node[data-lcfm-level] .mm-node-content p,
+.mm-node[data-lcfm-level] .mm-node-content li,
+.mm-node[data-lcfm-level] .mm-node-content ol {
+	color: var(--lcfm-color) !important;
+	border-color: var(--lcfm-color) !important;
+}
+
+.mm-node[data-lcfm-level] .mm-node-bar {
+	background: var(--lcfm-color) !important;
+	background-color: var(--lcfm-color) !important;
+	border-color: var(--lcfm-color) !important;
+	color: var(--lcfm-color) !important;
+	box-shadow: none !important;
+}
+
+.mm-mindmap-content > svg path[data-lcfm-level],
+.mm-mindmap-content > svg line[data-lcfm-level] {
+	stroke: var(--lcfm-color) !important;
+	color: var(--lcfm-color) !important;
+}
