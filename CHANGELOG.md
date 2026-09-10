@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.3
+
+- Node text and underline keep the node's own hierarchy colour.
+- Outgoing branches and the node junction/bar use the child hierarchy colour.
+
+
+Review cleanup release.
+
+- Preserved the stable MarkMind hierarchy-colour overrides required for node, branch and underline rendering.
+- Includes the latest diagnostics, deprecated API cleanup and reproducible build metadata.
+- Corrected repository ignore rules so TypeScript source remains tracked.
+
 ## 1.0.2
 
 Lint/submission cleanup:

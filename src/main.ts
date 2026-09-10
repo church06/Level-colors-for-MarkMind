@@ -182,8 +182,27 @@ export default class LevelColorsForMarkMind extends Plugin {
 
 		for (const node of traversal) {
 			const nodeDepth = treeState.depth.get(node);
-			if (nodeDepth !== undefined) {
-				this.assignVisualLevel(node, nodeDepth);
+			if (nodeDepth === undefined) {
+				continue;
+			}
+
+			// Node text uses the node's own hierarchy depth.
+			this.assignVisualLevel(node, nodeDepth);
+
+			// The junction/bar visually starts the outgoing branch, so when this
+			// node has children it uses the child level instead.
+			const bar = node.querySelector<HTMLElement>('.mm-node-bar');
+			if (bar !== null) {
+				const children = treeState.children.get(node) ?? [];
+				const firstChild = children[0];
+				const childDepth =
+					firstChild !== undefined ? treeState.depth.get(firstChild) : undefined;
+
+				if (childDepth !== undefined) {
+					this.assignVisualLevel(bar, childDepth);
+				} else {
+					bar.removeAttribute(LEVEL_ATTRIBUTE);
+				}
 			}
 		}
 
@@ -560,12 +579,20 @@ export default class LevelColorsForMarkMind extends Plugin {
 				expectedUnderlineNodes: underlineNodes.length,
 				lineCountMatches: lines.length === underlineNodes.length,
 				nodeLevels,
-				nodeSamples: traversal.slice(0, 20).map((node) => ({
-					depth: treeState.depth.get(node) ?? null,
-					visualLevel: node.getAttribute(LEVEL_ATTRIBUTE),
-					text: node.textContent?.trim().replace(/\s+/g, ' ').slice(0, 80) ?? null,
-					computedColor: getComputedStyle(node).color,
-				})),
+				nodeSamples: traversal.slice(0, 20).map((node) => {
+					const bar = node.querySelector<HTMLElement>('.mm-node-bar');
+					const children = treeState.children.get(node) ?? [];
+
+					return {
+						depth: treeState.depth.get(node) ?? null,
+						visualLevel: node.getAttribute(LEVEL_ATTRIBUTE),
+						junctionVisualLevel: bar?.getAttribute(LEVEL_ATTRIBUTE) ?? null,
+						hasChildren: children.length > 0,
+						text: node.textContent?.trim().replace(/\s+/g, ' ').slice(0, 80) ?? null,
+						computedColor: getComputedStyle(node).color,
+						junctionColor: bar !== null ? getComputedStyle(bar).backgroundColor : null,
+					};
+				}),
 				pathSamples: paths.slice(0, 20).map((path, index) => ({
 					index,
 					visualLevel: path.getAttribute(LEVEL_ATTRIBUTE),

@@ -1,6 +1,6 @@
 {
   "name": "level-colors-for-markmind",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Automatically colours MarkMind Basic nodes and branches by hierarchy level.",
   "main": "main.js",
   "scripts": {
