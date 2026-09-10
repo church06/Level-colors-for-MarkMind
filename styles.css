@@ -1,26 +1,64 @@
 /*
 Level Colors for MarkMind
 
-Runtime code only assigns a structural data attribute:
-    data-lcfm-level="<n>"
-
-All visual styling lives in this stylesheet.
+Runtime assigns data-lcfm-level="<n>"; all colours live here.
+24 paired OKLCH hues, with moderate chroma and theme-specific lightness.
+Each palette is distinct and ordered to separate neighbouring levels,
+including the 23-to-0 wrap. Rounded sRGB colours meet a 4.5:1 contrast
+floor on #333333 (dark) and #F0F0F0 (light); custom backgrounds may differ.
 */
 
-[data-lcfm-level="0"]  { --lcfm-color: #E65C87; }
-[data-lcfm-level="1"]  { --lcfm-color: #3D91D4; }
-[data-lcfm-level="2"]  { --lcfm-color: #42B883; }
-[data-lcfm-level="3"]  { --lcfm-color: #F29A2E; }
-[data-lcfm-level="4"]  { --lcfm-color: #9A72D8; }
-[data-lcfm-level="5"]  { --lcfm-color: #43A9A0; }
-[data-lcfm-level="6"]  { --lcfm-color: #D7A93B; }
-[data-lcfm-level="7"]  { --lcfm-color: #E06F5C; }
-[data-lcfm-level="8"]  { --lcfm-color: #6574C4; }
-[data-lcfm-level="9"]  { --lcfm-color: #78A83B; }
-[data-lcfm-level="10"] { --lcfm-color: #C060A1; }
-[data-lcfm-level="11"] { --lcfm-color: #4E9FB5; }
-[data-lcfm-level="12"] { --lcfm-color: #A46F4C; }
-[data-lcfm-level="13"] { --lcfm-color: #7A8A99; }
+/* Soft, bright colours for dark mode (default). */
+[data-lcfm-level="0"] { --lcfm-color: #F78FB1; }
+[data-lcfm-level="1"] { --lcfm-color: #63ADF6; }
+[data-lcfm-level="2"] { --lcfm-color: #D0988E; }
+[data-lcfm-level="3"] { --lcfm-color: #989EF8; }
+[data-lcfm-level="4"] { --lcfm-color: #E8A17A; }
+[data-lcfm-level="5"] { --lcfm-color: #FA99F2; }
+[data-lcfm-level="6"] { --lcfm-color: #9ED193; }
+[data-lcfm-level="7"] { --lcfm-color: #C7B7E8; }
+[data-lcfm-level="8"] { --lcfm-color: #78BA86; }
+[data-lcfm-level="9"] { --lcfm-color: #EE8485; }
+[data-lcfm-level="10"] { --lcfm-color: #C1A0FB; }
+[data-lcfm-level="11"] { --lcfm-color: #D9BD8E; }
+[data-lcfm-level="12"] { --lcfm-color: #C688F2; }
+[data-lcfm-level="13"] { --lcfm-color: #D09C5F; }
+[data-lcfm-level="14"] { --lcfm-color: #9FA3D4; }
+[data-lcfm-level="15"] { --lcfm-color: #ABAD60; }
+[data-lcfm-level="16"] { --lcfm-color: #E87CC7; }
+[data-lcfm-level="17"] { --lcfm-color: #75B7A9; }
+[data-lcfm-level="18"] { --lcfm-color: #CC91C6; }
+[data-lcfm-level="19"] { --lcfm-color: #6CBF5A; }
+[data-lcfm-level="20"] { --lcfm-color: #FBA7A6; }
+[data-lcfm-level="21"] { --lcfm-color: #92CAE6; }
+[data-lcfm-level="22"] { --lcfm-color: #FA8054; }
+[data-lcfm-level="23"] { --lcfm-color: #93D0BA; }
+
+/* Matching hues with enough depth to remain legible on light surfaces. */
+.theme-light [data-lcfm-level="0"] { --lcfm-color: #9C3E60; }
+.theme-light [data-lcfm-level="1"] { --lcfm-color: #1666AA; }
+.theme-light [data-lcfm-level="2"] { --lcfm-color: #87544B; }
+.theme-light [data-lcfm-level="3"] { --lcfm-color: #49499B; }
+.theme-light [data-lcfm-level="4"] { --lcfm-color: #80421A; }
+.theme-light [data-lcfm-level="5"] { --lcfm-color: #A3489D; }
+.theme-light [data-lcfm-level="6"] { --lcfm-color: #34622A; }
+.theme-light [data-lcfm-level="7"] { --lcfm-color: #695A85; }
+.theme-light [data-lcfm-level="8"] { --lcfm-color: #337344; }
+.theme-light [data-lcfm-level="9"] { --lcfm-color: #B14D51; }
+.theme-light [data-lcfm-level="10"] { --lcfm-color: #6F4FA1; }
+.theme-light [data-lcfm-level="11"] { --lcfm-color: #6A5124; }
+.theme-light [data-lcfm-level="12"] { --lcfm-color: #703396; }
+.theme-light [data-lcfm-level="13"] { --lcfm-color: #875814; }
+.theme-light [data-lcfm-level="14"] { --lcfm-color: #4E517C; }
+.theme-light [data-lcfm-level="15"] { --lcfm-color: #676815; }
+.theme-light [data-lcfm-level="16"] { --lcfm-color: #8A2470; }
+.theme-light [data-lcfm-level="17"] { --lcfm-color: #2E7065; }
+.theme-light [data-lcfm-level="18"] { --lcfm-color: #743F6F; }
+.theme-light [data-lcfm-level="19"] { --lcfm-color: #227702; }
+.theme-light [data-lcfm-level="20"] { --lcfm-color: #843B3E; }
+.theme-light [data-lcfm-level="21"] { --lcfm-color: #255C75; }
+.theme-light [data-lcfm-level="22"] { --lcfm-color: #BB4717; }
+.theme-light [data-lcfm-level="23"] { --lcfm-color: #25624F; }
 
 .mm-node[data-lcfm-level] {
 	color: var(--lcfm-color) !important;

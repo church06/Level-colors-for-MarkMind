@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.4
+
+- Expanded the palette to 24 colours that repeat at deeper levels instead of staying grey.
+- Added paired light/dark palettes that prioritise readability, with softer bright colours in dark mode and matching darker hues in light mode.
+- Increased colour separation between adjacent levels, including the end-to-start transition of the cycle.
+- Filtered unrelated interface mutations and prevented continuous rendering from indefinitely delaying colour updates.
+- Removed stale level markers when nodes, branches or underlines can no longer be mapped.
+- Paused underline colouring when the tree or underline sequence is incomplete, restoring it after a complete render.
+- Added colouring for single-node mind maps.
+
 ## 1.0.3
 
 - Node text and underline keep the node's own hierarchy colour.

@@ -4,7 +4,8 @@ const CONTENT_SELECTOR = '.mm-mindmap-content';
 const NODE_SELECTOR = ':scope > .mm-node';
 const LEVEL_ATTRIBUTE = 'data-lcfm-level';
 const FIRST_UNDERLINE_DEPTH = 2;
-const MAX_VISUAL_LEVEL = 13;
+// Keep in sync with the level selectors (0–23) in styles.css.
+const VISUAL_LEVEL_COUNT = 24;
 const REAPPLY_DELAY_MS = 160;
 const MAX_ENDPOINT_NODE_DISTANCE = 90;
 
@@ -44,11 +45,7 @@ export default class LevelColorsForMarkMind extends Plugin {
 		this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.schedule()));
 
 		this.observer = new MutationObserver((records) => {
-			const shouldReapply = records.some((record) =>
-				record.type === 'childList' ||
-				(record.type === 'attributes' &&
-					(record.attributeName === 'd' || record.attributeName === 'class'))
-			);
+			const shouldReapply = records.some((record) => this.affectsMindMap(record));
 
 			if (shouldReapply) {
 				this.schedule();
@@ -88,6 +85,8 @@ export default class LevelColorsForMarkMind extends Plugin {
 	}
 
 	onunload(): void {
+		this.observer?.disconnect();
+		this.observer = null;
 		if (this.timer !== null) {
 			window.clearTimeout(this.timer);
 			this.timer = null;
@@ -98,13 +97,39 @@ export default class LevelColorsForMarkMind extends Plugin {
 
 	private schedule(): void {
 		if (this.timer !== null) {
-			window.clearTimeout(this.timer);
+			// Keep the pending run so continuous rendering cannot postpone it forever.
+			return;
 		}
 
 		this.timer = window.setTimeout(() => {
 			this.timer = null;
 			this.apply(false);
 		}, REAPPLY_DELAY_MS);
+	}
+
+	private affectsMindMap(record: MutationRecord): boolean {
+		const target = record.target.nodeType === 1
+			? record.target as Element
+			: record.target.parentElement;
+		if (target?.closest(CONTENT_SELECTOR)) {
+			return true;
+		}
+
+		// Ancestor class changes can reveal a previously hidden map.
+		if (record.type === 'attributes') {
+			return record.attributeName === 'class' &&
+				target !== null && target.querySelector(CONTENT_SELECTOR) !== null;
+		}
+
+		// A newly inserted view can contain the entire map inside a wrapper.
+		return Array.from(record.addedNodes).some((node) => {
+			if (node.nodeType !== 1) {
+				return false;
+			}
+			const element = node as Element;
+			return element.matches(CONTENT_SELECTOR) ||
+				element.querySelector(CONTENT_SELECTOR) !== null;
+		});
 	}
 
 	private apply(showNotice: boolean): void {
@@ -130,9 +155,10 @@ export default class LevelColorsForMarkMind extends Plugin {
 
 		if (showNotice) {
 			const underlineStatus =
-				totals.expectedUnderlines === totals.actualUnderlines
+				totals.expectedUnderlines === totals.actualUnderlines &&
+				totals.underlines === totals.actualUnderlines
 					? 'exact'
-					: 'count mismatch';
+					: 'incomplete mapping (unmatched underlines left uncoloured)';
 
 			new Notice(
 				`Level Colors for MarkMind: ${totals.nodes} nodes, ` +
@@ -143,6 +169,17 @@ export default class LevelColorsForMarkMind extends Plugin {
 	}
 
 	private applyToMindMap(content: HTMLElement): PaintStats {
+		const stale = new Set(this.queryAll<Element>(content, `[${LEVEL_ATTRIBUTE}]`));
+		const mark = (element: Element, depth: number): void => {
+			this.assignVisualLevel(element, depth);
+			stale.delete(element);
+		};
+		const finish = (stats: PaintStats): PaintStats => {
+			for (const element of stale) {
+				element.removeAttribute(LEVEL_ATTRIBUTE);
+			}
+			return stats;
+		};
 		const empty: PaintStats = {
 			nodes: 0,
 			branches: 0,
@@ -152,24 +189,13 @@ export default class LevelColorsForMarkMind extends Plugin {
 		};
 
 		const nodes = this.queryAll<NodeElement>(content, NODE_SELECTOR);
-		if (nodes.length < 2) {
-			return empty;
-		}
-
 		const svg = this.findMainBranchSvg(content);
-		if (svg === null) {
-			return empty;
-		}
-
-		const paths = this.queryAll<SVGPathElement>(svg, 'path');
-		const lines = this.queryAll<SVGLineElement>(svg, 'line');
-		if (paths.length === 0) {
-			return empty;
-		}
+		const paths = svg ? this.queryAll<SVGPathElement>(svg, 'path') : [];
+		const lines = svg ? this.queryAll<SVGLineElement>(svg, 'line') : [];
 
 		const root = this.findRootNode(nodes);
 		if (root === null) {
-			return empty;
+			return finish({ ...empty, actualUnderlines: lines.length });
 		}
 
 		const rects = new Map<NodeElement, DOMRect>(
@@ -187,7 +213,7 @@ export default class LevelColorsForMarkMind extends Plugin {
 			}
 
 			// Node text uses the node's own hierarchy depth.
-			this.assignVisualLevel(node, nodeDepth);
+			mark(node, nodeDepth);
 
 			// The junction/bar visually starts the outgoing branch, so when this
 			// node has children it uses the child level instead.
@@ -199,7 +225,7 @@ export default class LevelColorsForMarkMind extends Plugin {
 					firstChild !== undefined ? treeState.depth.get(firstChild) : undefined;
 
 				if (childDepth !== undefined) {
-					this.assignVisualLevel(bar, childDepth);
+					mark(bar, childDepth);
 				} else {
 					bar.removeAttribute(LEVEL_ATTRIBUTE);
 				}
@@ -228,7 +254,7 @@ export default class LevelColorsForMarkMind extends Plugin {
 				continue;
 			}
 
-			this.assignVisualLevel(path, childDepth);
+			mark(path, childDepth);
 			branchCount++;
 		}
 
@@ -236,21 +262,24 @@ export default class LevelColorsForMarkMind extends Plugin {
 			(node) => (treeState.depth.get(node) ?? -1) >= FIRST_UNDERLINE_DEPTH
 		);
 
-		const pairCount = Math.min(lines.length, underlineNodes.length);
+		// Index pairing is only safe when the whole tree and line sequence are present.
+		const mappingComplete = traversal.length === nodes.length &&
+			branchCount === paths.length && lines.length === underlineNodes.length;
+		const pairCount = mappingComplete ? lines.length : 0;
 		for (let index = 0; index < pairCount; index++) {
 			const nodeDepth = treeState.depth.get(underlineNodes[index]);
 			if (nodeDepth !== undefined) {
-				this.assignVisualLevel(lines[index], nodeDepth);
+				mark(lines[index], nodeDepth);
 			}
 		}
 
-		return {
+		return finish({
 			nodes: traversal.length,
 			branches: branchCount,
 			underlines: pairCount,
 			expectedUnderlines: underlineNodes.length,
 			actualUnderlines: lines.length,
-		};
+		});
 	}
 
 	private buildGraph(
@@ -407,7 +436,7 @@ export default class LevelColorsForMarkMind extends Plugin {
 	}
 
 	private visualLevelForDepth(depth: number): number {
-		return Math.min(Math.max(depth, 0), MAX_VISUAL_LEVEL);
+		return Math.max(depth, 0) % VISUAL_LEVEL_COUNT;
 	}
 
 	private clearAppliedLevels(root: ParentNode): void {

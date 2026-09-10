@@ -12,6 +12,8 @@ It is intentionally narrow in scope: install it, enable it, and let it assign co
 ## What it does
 
 - Automatically colours MarkMind Basic nodes by hierarchy level.
+- Uses a 24-colour palette that repeats for deeper levels instead of capping at grey.
+- Adapts the palette to Obsidian's light/dark mode: soft bright colours on dark backgrounds, with matching darker hues on light backgrounds. Colours prioritise readability before separation between levels.
 - Colours branch curves to match the corresponding hierarchy level.
 - Colours MarkMind's underline segments using logical tree traversal.
 - Re-applies colours after relevant layout or render changes.
