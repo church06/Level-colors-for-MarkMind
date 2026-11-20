@@ -14,6 +14,10 @@ export default defineConfig([
 				tsconfigRootDir: import.meta.dirname,
 			},
 		},
+		rules: {
+			// Keep the product name's canonical casing in UI text.
+			'obsidianmd/ui/sentence-case': ['warn', { ignoreWords: ['MarkMind'] }],
+		},
 	},
 	{
 		files: ['esbuild.config.mjs', 'version-bump.mjs'],

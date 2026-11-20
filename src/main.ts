@@ -7,6 +7,7 @@ const FIRST_UNDERLINE_DEPTH = 2;
 // Keep in sync with the level selectors (0–23) in styles.css.
 const VISUAL_LEVEL_COUNT = 24;
 const REAPPLY_DELAY_MS = 160;
+// Screen pixels at 100% map zoom; scaled by the branch's current zoom.
 const MAX_ENDPOINT_NODE_DISTANCE = 90;
 
 type NodeElement = HTMLElement;
@@ -39,31 +40,44 @@ interface PaintStats {
 export default class LevelColorsForMarkMind extends Plugin {
 	private timer: number | null = null;
 	private observer: MutationObserver | null = null;
+	// Main window plus any pop-out windows.
+	private readonly documents = new Set<Document>();
+	// Maps seen in the last full scan; used to cheaply test ancestor class changes.
+	private knownMaps = new Set<HTMLElement>();
+	private pendingMaps = new Set<HTMLElement>();
+	private pendingAll = false;
 
 	onload(): void {
 		this.registerEvent(this.app.workspace.on('layout-change', () => this.schedule()));
 		this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.schedule()));
+		this.registerEvent(this.app.workspace.on('window-open', (_workspaceWindow, win) => {
+			this.watchDocument(win.document);
+			this.schedule();
+		}));
+		this.registerEvent(this.app.workspace.on('window-close', (_workspaceWindow, win) => {
+			this.unwatchDocument(win.document);
+		}));
 
 		this.observer = new MutationObserver((records) => {
-			const shouldReapply = records.some((record) => this.affectsMindMap(record));
+			for (const record of records) {
+				this.collectAffected(record);
+			}
 
-			if (shouldReapply) {
-				this.schedule();
+			if (this.pendingAll || this.pendingMaps.size > 0) {
+				this.scheduleRun();
 			}
 		});
 
-		this.observer.observe(document.body, {
-			childList: true,
-			subtree: true,
-			attributes: true,
-			attributeFilter: ['d', 'class'],
+		this.watchDocument(document);
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			this.watchDocument(leaf.view.containerEl.ownerDocument);
 		});
 
 		this.register(() => this.observer?.disconnect());
 
 		this.addCommand({
 			id: 'reapply-level-colors',
-			name: 'Re-apply markmind level colours',
+			name: 'Re-apply MarkMind level colors',
 			callback: () => this.apply(true),
 		});
 
@@ -92,10 +106,59 @@ export default class LevelColorsForMarkMind extends Plugin {
 			this.timer = null;
 		}
 
-		this.clearAppliedLevels(document);
+		for (const doc of this.documents) {
+			this.clearAppliedLevels(doc);
+		}
+		this.documents.clear();
+		this.knownMaps.clear();
+		this.pendingMaps.clear();
 	}
 
+	private observerOptions(): MutationObserverInit {
+		return {
+			childList: true,
+			subtree: true,
+			attributes: true,
+			attributeFilter: ['d', 'class'],
+		};
+	}
+
+	private watchDocument(doc: Document): void {
+		if (this.documents.has(doc) || doc.body === null) {
+			return;
+		}
+
+		this.documents.add(doc);
+		this.observer?.observe(doc.body, this.observerOptions());
+	}
+
+	private unwatchDocument(doc: Document): void {
+		if (!this.documents.delete(doc)) {
+			return;
+		}
+
+		// MutationObserver cannot stop observing a single target, so re-attach
+		// to the remaining documents only.
+		this.observer?.disconnect();
+		for (const remaining of this.documents) {
+			this.observer?.observe(remaining.body, this.observerOptions());
+		}
+
+		for (const map of this.knownMaps) {
+			if (map.ownerDocument === doc) {
+				this.knownMaps.delete(map);
+				this.pendingMaps.delete(map);
+			}
+		}
+	}
+
+	/** Schedule a full rescan of every map in every window. */
 	private schedule(): void {
+		this.pendingAll = true;
+		this.scheduleRun();
+	}
+
+	private scheduleRun(): void {
 		if (this.timer !== null) {
 			// Keep the pending run so continuous rendering cannot postpone it forever.
 			return;
@@ -103,38 +166,85 @@ export default class LevelColorsForMarkMind extends Plugin {
 
 		this.timer = window.setTimeout(() => {
 			this.timer = null;
-			this.apply(false);
+			this.run();
 		}, REAPPLY_DELAY_MS);
 	}
 
-	private affectsMindMap(record: MutationRecord): boolean {
+	private run(): void {
+		const maps = this.pendingAll ? this.findAllMaps() : [...this.pendingMaps];
+		this.pendingAll = false;
+		this.pendingMaps = new Set<HTMLElement>();
+
+		for (const content of maps) {
+			if (content.isConnected) {
+				this.applyToMindMap(content);
+			}
+		}
+	}
+
+	private findAllMaps(): HTMLElement[] {
+		const maps: HTMLElement[] = [];
+		for (const doc of this.documents) {
+			maps.push(...this.queryAll<HTMLElement>(doc, CONTENT_SELECTOR));
+		}
+
+		this.knownMaps = new Set(maps);
+		return maps;
+	}
+
+	private collectAffected(record: MutationRecord): void {
 		const target = record.target.nodeType === 1
 			? record.target as Element
 			: record.target.parentElement;
-		if (target?.closest(CONTENT_SELECTOR)) {
-			return true;
+		if (target === null) {
+			return;
+		}
+
+		const map = target.closest<HTMLElement>(CONTENT_SELECTOR);
+		if (map !== null) {
+			this.pendingMaps.add(map);
+			this.knownMaps.add(map);
+			return;
 		}
 
 		// Ancestor class changes can reveal a previously hidden map.
 		if (record.type === 'attributes') {
-			return record.attributeName === 'class' &&
-				target !== null && target.querySelector(CONTENT_SELECTOR) !== null;
+			if (record.attributeName !== 'class') {
+				return;
+			}
+			for (const known of this.knownMaps) {
+				if (!known.isConnected) {
+					this.knownMaps.delete(known);
+				} else if (target.contains(known)) {
+					this.pendingMaps.add(known);
+				}
+			}
+			return;
 		}
 
 		// A newly inserted view can contain the entire map inside a wrapper.
-		return Array.from(record.addedNodes).some((node) => {
+		for (const node of Array.from(record.addedNodes)) {
 			if (node.nodeType !== 1) {
-				return false;
+				continue;
 			}
 			const element = node as Element;
-			return element.matches(CONTENT_SELECTOR) ||
-				element.querySelector(CONTENT_SELECTOR) !== null;
-		});
+			const added = element.matches(CONTENT_SELECTOR)
+				? [element as HTMLElement]
+				: this.queryAll<HTMLElement>(element, CONTENT_SELECTOR);
+			for (const content of added) {
+				this.pendingMaps.add(content);
+				this.knownMaps.add(content);
+			}
+		}
+	}
+
+	private isRendered(content: HTMLElement): boolean {
+		// Hidden maps (background tabs, collapsed panes) have no layout, so
+		// geometry-based matching would fail and wrongly strip their colors.
+		return content.isConnected && content.getClientRects().length > 0;
 	}
 
 	private apply(showNotice: boolean): void {
-		const host: ParentNode = document;
-
 		const totals: PaintStats = {
 			nodes: 0,
 			branches: 0,
@@ -143,8 +253,11 @@ export default class LevelColorsForMarkMind extends Plugin {
 			actualUnderlines: 0,
 		};
 
-		for (const content of this.queryAll<HTMLElement>(host, CONTENT_SELECTOR)) {
+		for (const content of this.findAllMaps()) {
 			const stats = this.applyToMindMap(content);
+			if (stats === null) {
+				continue;
+			}
 
 			totals.nodes += stats.nodes;
 			totals.branches += stats.branches;
@@ -158,7 +271,7 @@ export default class LevelColorsForMarkMind extends Plugin {
 				totals.expectedUnderlines === totals.actualUnderlines &&
 				totals.underlines === totals.actualUnderlines
 					? 'exact'
-					: 'incomplete mapping (unmatched underlines left uncoloured)';
+					: 'incomplete mapping (unmatched underlines left uncolored)';
 
 			new Notice(
 				`Level Colors for MarkMind: ${totals.nodes} nodes, ` +
@@ -168,7 +281,12 @@ export default class LevelColorsForMarkMind extends Plugin {
 		}
 	}
 
-	private applyToMindMap(content: HTMLElement): PaintStats {
+	private applyToMindMap(content: HTMLElement): PaintStats | null {
+		if (!this.isRendered(content)) {
+			// Keep existing markers; the map is re-scanned when it becomes visible.
+			return null;
+		}
+
 		const stale = new Set(this.queryAll<Element>(content, `[${LEVEL_ATTRIBUTE}]`));
 		const mark = (element: Element, depth: number): void => {
 			this.assignVisualLevel(element, depth);
@@ -298,6 +416,9 @@ export default class LevelColorsForMarkMind extends Plugin {
 				continue;
 			}
 
+			// The endpoint tolerance is defined at 100% zoom; scale it with the
+			// map so zooming in or out does not drop or mis-match branches.
+			const maxDistance = MAX_ENDPOINT_NODE_DISTANCE * this.screenScale(path);
 			const first = this.findNearestNode(endpoints[0], nodes, rects);
 			const second = this.findNearestNode(endpoints[1], nodes, rects);
 
@@ -305,8 +426,8 @@ export default class LevelColorsForMarkMind extends Plugin {
 				first.node === null ||
 				second.node === null ||
 				first.node === second.node ||
-				first.distance > MAX_ENDPOINT_NODE_DISTANCE ||
-				second.distance > MAX_ENDPOINT_NODE_DISTANCE
+				first.distance > maxDistance ||
+				second.distance > maxDistance
 			) {
 				continue;
 			}
@@ -498,6 +619,12 @@ export default class LevelColorsForMarkMind extends Plugin {
 		}
 	}
 
+	private screenScale(path: SVGPathElement): number {
+		const ctm = path.getScreenCTM();
+		const scale = ctm !== null ? Math.hypot(ctm.a, ctm.b) : 1;
+		return Number.isFinite(scale) && scale > 0 ? scale : 1;
+	}
+
 	private pathPointToScreen(
 		path: SVGPathElement,
 		point: DOMPoint
@@ -552,10 +679,9 @@ export default class LevelColorsForMarkMind extends Plugin {
 	}
 
 	private makeDiagnostics(): unknown[] {
-		const host: ParentNode = document;
 		const reports: unknown[] = [];
 
-		for (const content of this.queryAll<HTMLElement>(host, CONTENT_SELECTOR)) {
+		for (const content of this.findAllMaps()) {
 			const nodes = this.queryAll<NodeElement>(content, NODE_SELECTOR);
 			const svg = this.findMainBranchSvg(content);
 			const paths = svg ? this.queryAll<SVGPathElement>(svg, 'path') : [];
@@ -566,6 +692,7 @@ export default class LevelColorsForMarkMind extends Plugin {
 					nodes: nodes.length,
 					branchSVGPaths: paths.length,
 					svgLines: lines.length,
+					rendered: this.isRendered(content),
 					error: 'No complete MarkMind tree found',
 				});
 				continue;
@@ -601,6 +728,8 @@ export default class LevelColorsForMarkMind extends Plugin {
 
 			reports.push({
 				nodes: nodes.length,
+				rendered: this.isRendered(content),
+				screenScale: paths.length > 0 ? this.screenScale(paths[0]) : null,
 				reachedNodesFromRoot: treeState.depth.size,
 				branchSVGPaths: paths.length,
 				matchedPaths: graphState.pathEdges.size,

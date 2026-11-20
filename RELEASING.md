@@ -9,7 +9,7 @@
 2. Confirm `manifest.json` and `versions.json` contain the intended version.
 3. Commit the source repository. Do not commit generated `main.js`.
 4. Create a GitHub Release whose tag exactly matches `manifest.json`, for example:
-   `1.0.4`
+   `1.0.5`
 5. Attach:
    - `main.js`
    - `manifest.json`

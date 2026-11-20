@@ -1,7 +1,7 @@
 {
   "name": "level-colors-for-markmind",
-  "version": "1.0.4",
-  "description": "Automatically colours MarkMind Basic nodes and branches by hierarchy level.",
+  "version": "1.0.5",
+  "description": "Automatically colors MarkMind Basic nodes and branches by hierarchy level.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
@@ -18,10 +18,10 @@
   "author": "SDesolator",
   "license": "MIT",
   "devDependencies": {
-    "esbuild": "latest",
-    "eslint": "latest",
-    "eslint-plugin-obsidianmd": "latest",
-    "obsidian": "latest",
-    "typescript": "latest"
+    "esbuild": "0.28.2",
+    "eslint": "9.39.5",
+    "eslint-plugin-obsidianmd": "0.4.2",
+    "obsidian": "1.13.1",
+    "typescript": "5.4.5"
   }
 }
